@@ -25,4 +25,4 @@ go.work.sum
 .env
 
 # Add QuitSmokingSnippet to gitignore
-QuitSmokingSnippet
+QuitSmokingSnippet/
