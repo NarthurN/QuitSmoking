@@ -65,7 +65,7 @@ func PostSmoker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mocks.Smokers[smoker.ID] = smoker
+	mocks.Smokers[smoker.ID] = &smoker
 
 	message := map[string]string{"message": "Пользователь записан", "id": smoker.ID}
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
@@ -86,6 +86,40 @@ func DeleteSmoker(w http.ResponseWriter, r *http.Request) {
 	delete(mocks.Smokers, id)
 
 	message := map[string]string{"message": "Пользователь удалён", "id": id}
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(message); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func PutSmoker(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if _, ok := mocks.Smokers[id]; !ok {
+		http.Error(w, "Такого курильщика не существует", http.StatusBadRequest)
+		return
+	}
+
+	var smoker models.Smoker
+	var buf bytes.Buffer
+
+	if _, err := buf.ReadFrom(r.Body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := json.Unmarshal(buf.Bytes(), &smoker); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mocks.Smokers[id].ID = smoker.ID
+	mocks.Smokers[id].Name = smoker.Name
+	mocks.Smokers[id].Experience = smoker.Experience
+	mocks.Smokers[id].StoppedSmoking = smoker.StoppedSmoking
+
+	message := map[string]string{"message": "Данные пользователя изменены", "id": id}
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {

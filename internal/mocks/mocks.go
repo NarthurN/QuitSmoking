@@ -6,7 +6,7 @@ import (
 	"github.com/NarthurN/QuitSmoking/internal/models"
 )
 
-var Smokers = map[string]models.Smoker{
+var Smokers = map[string]*models.Smoker{
 	"1": {
 		ID:             "1",
 		Name:           "Arthur",
