@@ -1,17 +1,24 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
+	r := chi.NewRouter()
+
+	r.Get("/", handlers.Home)
+	r.Get("/smokers", handlers.GetSmokers)
+
 	addr := ":8080"
 	log.Printf("Server is listening on %s ...", addr)
 
-	http.HandleFunc("/", handlers.Home)
-
-	http.ListenAndServe(addr, nil)
+	if err := http.ListenAndServe(addr, r); err != nil {
+		fmt.Printf("Ошибка при запуске сервера %s", err.Error())
+	}
 }
