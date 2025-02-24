@@ -75,3 +75,21 @@ func PostSmoker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func DeleteSmoker(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if _, ok := mocks.Smokers[id]; !ok {
+		http.Error(w, "Такого курильщика не существует", http.StatusBadRequest)
+		return
+	}
+
+	delete(mocks.Smokers, id)
+
+	message := map[string]string{"message": "Пользователь удалён", "id": id}
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(message); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}

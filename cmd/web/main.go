@@ -16,6 +16,7 @@ func main() {
 	r.Get("/smokers", handlers.GetSmokers)
 	r.Get("/smokers/{id}", handlers.GetSmoker)
 	r.Post("/smokers", handlers.PostSmoker)
+	r.Delete("/smokers/{id}", handlers.DeleteSmoker)
 
 	addr := ":8080"
 	log.Printf("Server is listening on %s ...", addr)
