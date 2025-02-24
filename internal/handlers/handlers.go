@@ -3,7 +3,9 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/mocks"
 	"github.com/NarthurN/QuitSmoking/internal/models"
@@ -120,6 +122,40 @@ func PutSmoker(w http.ResponseWriter, r *http.Request) {
 	mocks.Smokers[id].StoppedSmoking = smoker.StoppedSmoking
 
 	message := map[string]string{"message": "Данные пользователя изменены", "id": id}
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(message); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func GetSmokersDiffTime(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if _, ok := mocks.Smokers[id]; !ok {
+		http.Error(w, "Такого курильщика не существует", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now().UTC()
+
+	diff := now.Sub(mocks.Smokers[id].StoppedSmoking)
+
+	// Преобразуем разницу в годы, месяцы, дни и часы
+	years := int(diff.Hours() / 24 / 365)
+	remaining := diff - time.Duration(years)*365*24*time.Hour
+
+	months := int(remaining.Hours() / 24 / 30)
+	remaining -= time.Duration(months) * 30 * 24 * time.Hour
+
+	days := int(remaining.Hours() / 24)
+	remaining -= time.Duration(days) * 24 * time.Hour
+
+	hours := int(remaining.Hours())
+
+	timePassed := fmt.Sprintf("%d лет, %d месяцев, %d дней, %d часов", years, months, days, hours)
+
+	message := map[string]string{"message": "Вы не курили", "id": id, "stoppedSmoking":timePassed}
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {

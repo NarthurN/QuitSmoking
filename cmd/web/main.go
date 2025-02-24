@@ -18,6 +18,7 @@ func main() {
 	r.Post("/smokers", handlers.PostSmoker)
 	r.Delete("/smokers/{id}", handlers.DeleteSmoker)
 	r.Put("/smokers/{id}", handlers.PutSmoker)
+	r.Get("/smokers/{id}", handlers.GetSmokersDiffTime)
 
 	addr := ":8080"
 	log.Printf("Server is listening on %s ...", addr)
