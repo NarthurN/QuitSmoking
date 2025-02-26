@@ -1,29 +1,38 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
-	"github.com/go-chi/chi/v5"
 )
 
 func main() {
-	r := chi.NewRouter()
 
-	r.Get("/", handlers.Home)
-	r.Get("/smokers", handlers.GetSmokers)
-	r.Get("/smokers/{id}", handlers.GetSmoker)
-	r.Post("/smokers", handlers.PostSmoker)
-	r.Delete("/smokers/{id}", handlers.DeleteSmoker)
-	r.Put("/smokers/{id}", handlers.PutSmoker)
-	r.Get("/smokers/{id}", handlers.GetSmokersDiffTime)
+	mux := http.NewServeMux()
+	srv := &http.Server{
+		Addr: ":8080",
+		Handler: mux,
+		ReadTimeout: 10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout: 60 * time.Second,
+	}
 
-	addr := ":8080"
-	log.Printf("Server is listening on %s ...", addr)
+	mux.Handle(`GET /`, handlers.NewHome(nil, nil))
+	mux.Handle(`GET /smokers`, handlers.NewGetSmokers())
 
-	if err := http.ListenAndServe(addr, r); err != nil {
-		fmt.Printf("Ошибка при запуске сервера %s", err.Error())
+	// r.Get("/", handlers.Home)
+	// r.Get("/smokers", handlers.GetSmokers)
+	// r.Get("/smokers/{id}", handlers.GetSmoker)
+	// r.Post("/smokers", handlers.PostSmoker)
+	// r.Delete("/smokers/{id}", handlers.DeleteSmoker)
+	// r.Put("/smokers/{id}", handlers.PutSmoker)
+	// r.Get("/smokers/{id}", handlers.GetSmokersDiffTime)
+
+	log.Printf("Server is listening on %s ...", srv.Addr)
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatalf("Ошибка при запуске сервера %s", err.Error())
 	}
 }

@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,23 +13,44 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Home(w http.ResponseWriter, r *http.Request) {
+// Home отображает стартовую страницу
+type Home struct{
+	db *sql.DB
+	logger *log.Logger
+}
+
+func NewHome(db *sql.DB, logger *log.Logger) *Home {
+	return &Home{
+		db: db,
+		logger: logger,
+	}
+}
+
+func (h *Home) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	msg := "Это приложение для тех, кто бросает курить!"
 	w.Write([]byte(msg))
 }
 
-func GetSmokers(w http.ResponseWriter, r *http.Request) {
+// GetSmokers отображает всех Smokers в формате JSON
+type GetSmokers struct {}
+
+func NewGetSmokers() *GetSmokers {
+	return &GetSmokers{}
+}
+
+func (g *GetSmokers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	smokers, err := json.Marshal(&mocks.Smokers)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-
+	
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(smokers)
 }
 
+// GetSmoker отображает данные одного Smoker по его id
 func GetSmoker(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	smoker, ok := mocks.Smokers[id]
@@ -39,7 +61,7 @@ func GetSmoker(w http.ResponseWriter, r *http.Request) {
 
 	smokerBytes, err := json.Marshal(&smoker)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -48,18 +70,13 @@ func GetSmoker(w http.ResponseWriter, r *http.Request) {
 	w.Write(smokerBytes)
 }
 
+// PostSmoker создаёт нового Smoker
 func PostSmoker(w http.ResponseWriter, r *http.Request) {
 	var smoker models.Smoker
-	var buf bytes.Buffer
 
-	if _, err := buf.ReadFrom(r.Body); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&smoker); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := json.Unmarshal(buf.Bytes(), &smoker); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	 	return
 	}
 
 	if _, ok := mocks.Smokers[smoker.ID]; ok {
@@ -73,11 +90,12 @@ func PostSmoker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 }
 
+// DeleteSmoker удаляет Smoker по id
 func DeleteSmoker(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if _, ok := mocks.Smokers[id]; !ok {
@@ -91,11 +109,12 @@ func DeleteSmoker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 }
 
+// PutSmoker обновляет данные курильщика по id
 func PutSmoker(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if _, ok := mocks.Smokers[id]; !ok {
@@ -104,15 +123,9 @@ func PutSmoker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var smoker models.Smoker
-	var buf bytes.Buffer
 
-	if _, err := buf.ReadFrom(r.Body); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := json.Unmarshal(buf.Bytes(), &smoker); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&smoker); err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -125,11 +138,12 @@ func PutSmoker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 }
 
+// GetSmokersDiffTime возвращает промежуток времени между StoppedSmoking и времени "сейчас"
 func GetSmokersDiffTime(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if _, ok := mocks.Smokers[id]; !ok {
