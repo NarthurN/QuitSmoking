@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
 	"github.com/NarthurN/QuitSmoking/internal/server"
@@ -11,9 +10,7 @@ import (
 func main() {
 	h := handlers.New(nil, nil)
 
-	mux := http.NewServeMux()
-
-	server.SetupRoutes(mux, h)
+	mux := server.SetupRoutes(h)
 
 	srv := server.New(mux)
 
