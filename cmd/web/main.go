@@ -3,32 +3,20 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
+	"github.com/NarthurN/QuitSmoking/internal/server"
 )
 
 func main() {
+	h := handlers.New(nil, nil)
 
 	mux := http.NewServeMux()
-	srv := &http.Server{
-		Addr: ":8080",
-		Handler: mux,
-		ReadTimeout: 10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout: 60 * time.Second,
-	}
 
-	mux.Handle(`GET /`, handlers.NewHome(nil, nil))
-	mux.Handle(`GET /smokers`, handlers.NewGetSmokers())
+	server.SetupRoutes(mux, h)
 
-	// r.Get("/", handlers.Home)
-	// r.Get("/smokers", handlers.GetSmokers)
-	// r.Get("/smokers/{id}", handlers.GetSmoker)
-	// r.Post("/smokers", handlers.PostSmoker)
-	// r.Delete("/smokers/{id}", handlers.DeleteSmoker)
-	// r.Put("/smokers/{id}", handlers.PutSmoker)
-	// r.Get("/smokers/{id}", handlers.GetSmokersDiffTime)
+	srv := server.New(mux)
+
 
 	log.Printf("Server is listening on %s ...", srv.Addr)
 
