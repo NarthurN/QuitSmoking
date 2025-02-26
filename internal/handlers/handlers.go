@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -15,10 +15,10 @@ import (
 
 type Handlers struct {
 	db *sql.DB
-	logger *log.Logger
+	logger *slog.Logger
 }
 
-func New(db *sql.DB, logger *log.Logger) *Handlers {
+func New(db *sql.DB, logger *slog.Logger) *Handlers {
 	return &Handlers{
 		db: db,
 		logger: logger,
@@ -29,6 +29,7 @@ func New(db *sql.DB, logger *log.Logger) *Handlers {
 func (h *Handlers) Home() http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
 		msg := "Это приложение для тех, кто бросает курить!"
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(msg))
 	}
 }
