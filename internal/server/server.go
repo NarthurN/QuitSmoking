@@ -17,9 +17,11 @@ func New(mux http.Handler) *http.Server {
 	}
 }
 
-func SetupRoutes(mux *http.ServeMux, h *handlers.Handlers) {
+func SetupRoutes(h *handlers.Handlers) *http.ServeMux{
+	mux := http.NewServeMux()
 	mux.Handle(`GET /`, h.Home())
 	mux.Handle(`GET /smokers`, h.GetSmokers())
+	return mux
 }
 
 	// r.Get("/", handlers.Home)
