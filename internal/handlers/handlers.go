@@ -13,41 +13,39 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Home отображает стартовую страницу
-type Home struct{
+type Handlers struct {
 	db *sql.DB
 	logger *log.Logger
 }
 
-func NewHome(db *sql.DB, logger *log.Logger) *Home {
-	return &Home{
+func New(db *sql.DB, logger *log.Logger) *Handlers {
+	return &Handlers{
 		db: db,
 		logger: logger,
 	}
 }
 
-func (h *Home) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	msg := "Это приложение для тех, кто бросает курить!"
-	w.Write([]byte(msg))
+// Home отображает стартовую страницу
+func (h *Handlers) Home() http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
+		msg := "Это приложение для тех, кто бросает курить!"
+		w.Write([]byte(msg))
+	}
 }
 
 // GetSmokers отображает всех Smokers в формате JSON
-type GetSmokers struct {}
-
-func NewGetSmokers() *GetSmokers {
-	return &GetSmokers{}
-}
-
-func (g *GetSmokers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	smokers, err := json.Marshal(&mocks.Smokers)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+func (h *Handlers) GetSmokers() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		smokers, err := json.Marshal(&mocks.Smokers)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		
+		w.Header().Set("Content-Type", "application/json;charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(smokers)
 	}
-	
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write(smokers)
 }
 
 // GetSmoker отображает данные одного Smoker по его id
