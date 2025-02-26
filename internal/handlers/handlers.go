@@ -15,13 +15,13 @@ import (
 
 type Handlers struct {
 	db *sql.DB
-	logger *slog.Logger
+	Logger *slog.Logger
 }
 
 func New(db *sql.DB, logger *slog.Logger) *Handlers {
 	return &Handlers{
 		db: db,
-		logger: logger,
+		Logger: logger,
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
-	"github.com/NarthurN/QuitSmoking/internal/middleware"
 	"github.com/NarthurN/QuitSmoking/internal/server"
 )
 
@@ -12,10 +11,8 @@ func main() {
 	logger := server.SetupLogger("debug")
 
 	h := handlers.New(nil, logger)
-	
-	mv := middleware.New(logger)
 
-	mux := server.SetupRoutes(h, mv)
+	mux := server.SetupRoutes(h)
 
 	srv := server.New(mux)
 
