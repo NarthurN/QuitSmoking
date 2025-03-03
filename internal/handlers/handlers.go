@@ -130,7 +130,6 @@ func PutSmoker(w http.ResponseWriter, r *http.Request) {
 
 	mocks.Smokers[id].ID = smoker.ID
 	mocks.Smokers[id].Name = smoker.Name
-	mocks.Smokers[id].Experience = smoker.Experience
 	mocks.Smokers[id].StoppedSmoking = smoker.StoppedSmoking
 
 	message := map[string]string{"message": "Данные пользователя изменены", "id": id}
