@@ -30,9 +30,38 @@ func New(db *sql.DB, logger *slog.Logger) *Handlers {
 // Home отображает стартовую страницу
 func (h *Handlers) Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		msg := "Это приложение для тех, кто бросает курить!"
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(msg))
+		c, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		tknStr := c.Value
+
+		claims := &models.Claims{}
+
+		tkn, err := jwt.ParseWithClaims(tknStr, claims, func(toke *jwt.Token) (any, error) {
+			return []byte(configs.JwtKey), nil
+		})
+		if err != nil {
+			if err == jwt.ErrSignatureInvalid {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if !tkn.Valid {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		w.Write(fmt.Appendf(nil, "Приветсвую %s! Это приложение для тех, кто бросает курить!", claims.Username))
 	}
 }
 
