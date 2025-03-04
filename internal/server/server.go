@@ -24,9 +24,9 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mv := middleware.New(h.Logger)
 	mux := http.NewServeMux()
 	mux.Handle(`GET /`, h.Home())
-	mux.Handle("POST /signin", h.Signin()) // определить метод
-	//mux.Handle("/refresh", h.Refresh()) // определить метод
-	//mux.Handle("/logout", h.Logout()) // определить метод
+	mux.Handle("POST /signin", h.Signin())
+	mux.Handle("POST /refresh", h.Refresh())
+	mux.Handle("POST /logout", h.Logout()) // определить метод
 	mux.Handle(`GET /smokers`, h.GetSmokers())
 	return mv.Log(mux)
 }

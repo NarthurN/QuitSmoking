@@ -87,7 +87,7 @@ func (h *Handlers) Signin() http.HandlerFunc {
 			return
 		}
 
-		expirationTime := time.Now().Add(5 * time.Minute)
+		expirationTime := time.Now().UTC().Add(5 * time.Minute)
 
 		claims := &models.Claims{
 			Username: creds.Username,
@@ -115,14 +115,66 @@ func (h *Handlers) Signin() http.HandlerFunc {
 //
 func (h *Handlers) Refresh() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		
+		c, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		tknStr := c.Value
+
+		claims := &models.Claims{}
+
+		tkn, err := jwt.ParseWithClaims(tknStr, claims, func(toke *jwt.Token) (any, error) {
+			return []byte(configs.JwtKey), nil
+		})
+		if err != nil {
+			if err == jwt.ErrSignatureInvalid {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if !tkn.Valid {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		if time.Until(claims.ExpiresAt.Time) > 30 * time.Second {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		expirationTime := time.Now().UTC().Add(5 * time.Minute)
+		claims.ExpiresAt = jwt.NewNumericDate(expirationTime)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := token.SignedString([]byte(configs.JwtKey))
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name: "token",
+			Value: tokenString,
+			Expires: expirationTime,
+		})
 	}
 }
 
 //
 func (h *Handlers) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		
+		http.SetCookie(w, &http.Cookie{
+			Name: "token",
+			Expires:time.Now().UTC(),
+		})
 	}
 }
 
