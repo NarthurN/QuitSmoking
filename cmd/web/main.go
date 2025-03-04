@@ -16,7 +16,6 @@ func main() {
 
 	srv := server.New(mux)
 
-
 	log.Printf("Server is listening on %s ...", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Ошибка при запуске сервера %s", err.Error())

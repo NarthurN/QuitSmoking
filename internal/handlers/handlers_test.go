@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 func TestHomeWhenOk(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	h := New(nil, nil)
@@ -16,7 +15,7 @@ func TestHomeWhenOk(t *testing.T) {
 	responseRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(h.Home())
 	handler.ServeHTTP(responseRecorder, r)
-	
+
 	assert.Equal(t, responseRecorder.Code, http.StatusOK)
 
 	expectedText := "Это приложение для тех, кто бросает курить!"
@@ -24,14 +23,14 @@ func TestHomeWhenOk(t *testing.T) {
 	assert.Equal(t, expectedText, body)
 }
 
-func TestGetSmokersWhenOk(t *testing.T)	{
+func TestGetSmokersWhenOk(t *testing.T) {
 	r := httptest.NewRequest("GET", "/smokers", nil)
 	h := New(nil, nil)
 
 	responseRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(h.GetSmokers())
 	handler.ServeHTTP(responseRecorder, r)
-	
+
 	assert.Equal(t, responseRecorder.Code, http.StatusOK)
 
 }
