@@ -8,29 +8,92 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/NarthurN/QuitSmoking/internal/configs"
 	"github.com/NarthurN/QuitSmoking/internal/mocks"
 	"github.com/NarthurN/QuitSmoking/internal/models"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Handlers struct {
-	db *sql.DB
+	db     *sql.DB
 	Logger *slog.Logger
 }
 
 func New(db *sql.DB, logger *slog.Logger) *Handlers {
 	return &Handlers{
-		db: db,
+		db:     db,
 		Logger: logger,
 	}
 }
 
 // Home отображает стартовую страницу
-func (h *Handlers) Home() http.HandlerFunc{
+func (h *Handlers) Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		msg := "Это приложение для тех, кто бросает курить!"
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(msg))
+	}
+}
+
+// Signin выдаёт JWT-токен по user и password
+func (h *Handlers) Signin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var creds models.Credentials
+
+		err := json.NewDecoder(r.Body).Decode(&creds)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		smoker, ok := mocks.Smokers[creds.Username]
+		if !ok {
+			http.Error(w, "Пользователя с таким username не существует", http.StatusBadRequest)
+			return
+		}
+		expectedPassword := smoker.Password
+		if expectedPassword != creds.Password {
+			http.Error(w, "Пароль неверный", http.StatusUnauthorized)
+			return
+		}
+
+		expirationTime := time.Now().Add(5 * time.Minute)
+
+		claims := &models.Claims{
+			Username: creds.Username,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expirationTime),
+			},
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+		tokenString, err := token.SignedString([]byte(configs.JwtKey))
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name: "token",
+			Value: tokenString,
+			Expires: expirationTime,
+		})
+	}
+}
+
+//
+func (h *Handlers) Refresh() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		
+	}
+}
+
+//
+func (h *Handlers) Logout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		
 	}
 }
 
@@ -42,7 +105,7 @@ func (h *Handlers) GetSmokers() http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json;charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write(smokers)
@@ -75,7 +138,7 @@ func PostSmoker(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&smoker); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	 	return
+		return
 	}
 
 	if _, ok := mocks.Smokers[smoker.ID]; ok {
@@ -167,7 +230,7 @@ func GetSmokersDiffTime(w http.ResponseWriter, r *http.Request) {
 
 	timePassed := fmt.Sprintf("%d лет, %d месяцев, %d дней, %d часов", years, months, days, hours)
 
-	message := map[string]string{"message": "Вы не курили", "id": id, "stoppedSmoking":timePassed}
+	message := map[string]string{"message": "Вы не курили", "id": id, "stoppedSmoking": timePassed}
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {

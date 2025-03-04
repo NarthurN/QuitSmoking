@@ -53,7 +53,7 @@ func (m *Middleware) Log(next http.Handler) http.Handler {
 			m.logger.Error("request faild", attrs...)
 		case rw.status >= 400:
 			m.logger.Warn("request warning", attrs...)
-		case duration > 500 * time.Microsecond:
+		case duration > 500*time.Microsecond:
 			m.logger.Warn("slow request", attrs...)
 		default:
 			m.logger.Info("request completed", attrs...)
