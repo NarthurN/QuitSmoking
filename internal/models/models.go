@@ -23,3 +23,6 @@ type Claims struct {
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
+
+// Чтобы в контекст передавать не тип string
+type ContextString string
