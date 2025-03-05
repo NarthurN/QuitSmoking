@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/configs"
@@ -46,4 +47,18 @@ func VerifyUser(token string) (*models.Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func SlogErr(err error) slog.Attr {
+	return slog.Attr{
+		Key: "error",
+		Value: slog.StringValue(err.Error()),
+	}
+}
+
+func SlogDebug(str string) slog.Attr {
+	return slog.Attr{
+		Key: "debug",
+		Value: slog.StringValue(str),
+	}
 }

@@ -29,42 +29,46 @@ func New(db *sql.DB, logger *slog.Logger) *Handlers {
 // Home отображает стартовую страницу
 func (h *Handlers) Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username, ok := r.Context().Value(models.ContextString("username")).(string)
+		username := r.Context().Value(models.ContextString("username"))
 		w.WriteHeader(http.StatusOK)
-		if !ok {
+		if username == nil {
 			w.Write([]byte("Привет, Гость! Это приложение для тех, кто бросает курить!"))
 			return
 		}
-		w.Write(fmt.Appendf(nil, "Привет, %s! Это приложение для тех, кто бросает курить!", username))
+		username = username.(string)
+		fmt.Fprintf(w, "Привет, %s! Это приложение для тех, кто бросает курить!", username)
 	}
 }
 
-// Signin выдаёт JWT-токен по user и password
+// Signin записывает JWT-токен в заголовок Authorization и проверяет корректность username и password
 func (h *Handlers) Signin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var creds models.Credentials
 
 		err := json.NewDecoder(r.Body).Decode(&creds)
 		if err != nil {
+			h.Logger.Error("handlers.Signin.Decode", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 
 		tokenString, err := helpers.GetJwtToken(creds.Username)
 		if err != nil {
-			h.Logger.Debug(err.Error())
+			h.Logger.Error("handlers.Signin.GetJwtToken", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		smoker, ok := mocks.Smokers[creds.Username]
 		if !ok {
+			h.Logger.Debug("handlers.Signin.CheckSmokerInBase", helpers.SlogDebug("smoker in base not found"))
 			http.Error(w, "Пользователя с таким username не существует", http.StatusBadRequest)
 			return
 		}
 
 		expectedPassword := creds.Password
 		if expectedPassword != smoker.Password {
+			h.Logger.Debug("handlers.Signin.CheckPasswordOfSmokerInBase", helpers.SlogDebug("password of smoker isn't correct"))
 			http.Error(w, "Пароль неверный", http.StatusUnauthorized)
 			return
 		}
@@ -89,6 +93,7 @@ func (h *Handlers) GetSmokers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		smokers, err := json.Marshal(&mocks.Smokers)
 		if err != nil {
+			h.Logger.Error("handlers.GetSmokers.Marshal", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
