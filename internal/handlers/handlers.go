@@ -8,12 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/NarthurN/QuitSmoking/internal/configs"
 	"github.com/NarthurN/QuitSmoking/internal/helpers"
 	"github.com/NarthurN/QuitSmoking/internal/mocks"
 	"github.com/NarthurN/QuitSmoking/internal/models"
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Handlers struct {
@@ -36,7 +34,7 @@ func (h *Handlers) Home() http.HandlerFunc {
 		if !ok {
 			w.Write([]byte("Привет, Гость! Это приложение для тех, кто бросает курить!"))
 			return
-		} 
+		}
 		w.Write(fmt.Appendf(nil, "Привет, %s! Это приложение для тех, кто бросает курить!", username))
 	}
 }
@@ -52,7 +50,7 @@ func (h *Handlers) Signin() http.HandlerFunc {
 			return
 		}
 
-		tokenString, err := helpers.GetJwtToken(&creds)
+		tokenString, err := helpers.GetJwtToken(creds.Username)
 		if err != nil {
 			h.Logger.Debug(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -64,7 +62,7 @@ func (h *Handlers) Signin() http.HandlerFunc {
 			http.Error(w, "Пользователя с таким username не существует", http.StatusBadRequest)
 			return
 		}
-	
+
 		expectedPassword := creds.Password
 		if expectedPassword != smoker.Password {
 			http.Error(w, "Пароль неверный", http.StatusUnauthorized)
@@ -74,61 +72,6 @@ func (h *Handlers) Signin() http.HandlerFunc {
 		w.Header().Set("Authorization", "Bearer "+tokenString)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Вы авторизированы!"))
-	}
-}
-
-func (h *Handlers) Refresh() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("token")
-		if err != nil {
-			if err == http.ErrNoCookie {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		tknStr := c.Value
-
-		claims := &models.Claims{}
-
-		tkn, err := jwt.ParseWithClaims(tknStr, claims, func(toke *jwt.Token) (any, error) {
-			return []byte(configs.JwtKey), nil
-		})
-		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		if !tkn.Valid {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-			return
-		}
-
-		if time.Until(claims.ExpiresAt.Time) > 30*time.Second {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		expirationTime := time.Now().UTC().Add(5 * time.Minute)
-		claims.ExpiresAt = jwt.NewNumericDate(expirationTime)
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString([]byte(configs.JwtKey))
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:    "token",
-			Value:   tokenString,
-			Expires: expirationTime,
-		})
 	}
 }
 

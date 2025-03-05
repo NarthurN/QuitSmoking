@@ -9,12 +9,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GetJwtToken(creds *models.Credentials) (string, error) {
+func GetJwtToken(username string) (string, error) {
 	op := "helpers.GetJwtToken"
 	expirationTime := time.Now().UTC().Add(5 * time.Minute)
 
 	claims := &models.Claims{
-		Username: creds.Username,
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -44,6 +44,6 @@ func VerifyUser(token string) (*models.Claims, error) {
 	if !tkn.Valid {
 		return claims, fmt.Errorf("%s: %w", op, err)
 	}
-	
+
 	return claims, nil
 }
