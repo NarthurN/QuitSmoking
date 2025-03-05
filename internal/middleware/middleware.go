@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/NarthurN/QuitSmoking/internal/helpers"
 	"github.com/NarthurN/QuitSmoking/internal/models"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Для получения статуса ответа
@@ -41,7 +42,6 @@ func (m *Middleware) Log(next http.Handler) http.Handler {
 			"Request started",
 			"method", r.Method,
 			"path", r.URL.Path,
-			"remote_addr", r.RemoteAddr,
 		)
 
 		rw := &customResponseWriter{ResponseWriter: w, status: 200}
@@ -65,6 +65,8 @@ func (m *Middleware) Log(next http.Handler) http.Handler {
 		default:
 			m.logger.Info("request completed", attrs...)
 		}
+
+		fmt.Println()
 	})
 }
 
@@ -92,7 +94,15 @@ func (m *Middleware) JwtAuth(next http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 				return
 			}
-	
+
+			if time.Until(claims.ExpiresAt.Time) < 30*time.Second {
+				newToken, err := helpers.GetJwtToken(claims.Username)
+				if err != nil {
+					m.logger.Debug(err.Error())
+				}
+				w.Header().Set("Authorization", "Bearer "+newToken)
+			}
+
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, models.ContextString("username"), claims.Username)
 			r = r.WithContext(ctx)
