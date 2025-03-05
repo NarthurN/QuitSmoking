@@ -25,7 +25,6 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle(`GET /`, h.Home())
 	mux.Handle("POST /signin", h.Signin())
-	mux.Handle("POST /refresh", h.Refresh())
 	mux.Handle("POST /logout", h.Logout()) // определить метод
 	mux.Handle(`GET /smokers`, h.GetSmokers())
 	return mv.Log(mv.JwtAuth(mux))
