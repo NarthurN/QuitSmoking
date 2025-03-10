@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Авторизация</title>
+    <script>
+        // JavaScript для перенаправления
+        function redirect() {
+            window.location.href = "/profile";
+        }
+        
+        // Запускаем перенаправление через 3 секунды (3000 миллисекунд)
+        setTimeout(redirect, 3000);
+    </script>
+</head>
+<body>
+    <h1>Вы авторизованы!</h1>
+    <p>Через 3 секунды вы будете перенаправлены на страницу профиля.</p>
+
+    <!-- Для браузеров без поддержки JavaScript -->
+    <noscript>
+        <meta http-equiv="refresh" content="3;url=/profile">
+        <a href="/profile">Кликните здесь, если перенаправление не произошло</a>
+    </noscript>
+</body>
+</html>
