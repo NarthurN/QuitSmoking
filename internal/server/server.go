@@ -24,15 +24,14 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mv := middleware.New(h.Logger)
 	mux := http.NewServeMux()
 	mux.Handle(`GET /`, h.Home())
-	mux.Handle("POST /signin", h.Signin())
-	mux.Handle("POST /logout", h.Logout()) // определить метод
+	mux.Handle(`POST /signin`, h.Signin())
+	mux.Handle("POST /logout", h.Logout())
 	mux.Handle(`GET /smokers`, h.GetSmokers())
+	mux.Handle(`GET /profile`, h.GetSmokerProfile())
+	// r.Get("/smokers/{id}", handlers.GetSmoker)
 	return mv.Log(mv.JwtAuth(mux))
 }
 
-// r.Get("/", handlers.Home)
-// r.Get("/smokers", handlers.GetSmokers)
-// r.Get("/smokers/{id}", handlers.GetSmoker)
 // r.Post("/smokers", handlers.PostSmoker)
 // r.Delete("/smokers/{id}", handlers.DeleteSmoker)
 // r.Put("/smokers/{id}", handlers.PutSmoker)

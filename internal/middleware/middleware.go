@@ -72,43 +72,55 @@ func (m *Middleware) Log(next http.Handler) http.Handler {
 
 func (m *Middleware) JwtAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeaderValue := r.Header.Get("Authorization")
-		var bearerToken []string
-		if r.URL.Path != "/signin" {
-			if authHeaderValue == "" {
-				m.logger.Debug("middleware.jwtAuth.authHeaderValue", helpers.SlogDebug("authHeaderValue is empty"))
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
-			bearerToken = strings.Split(authHeaderValue, " ")
-			if len(bearerToken) != 2 {
-				m.logger.Debug("middleware.jwtAuth.bearerToken", helpers.SlogDebug("format bearerToken is not Bearer {jwt}"))
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
-			claims, err := helpers.VerifyUser(bearerToken[1])
-			if err != nil {
-				m.logger.Error("middleware.jwtAuth.VerifyUser", helpers.SlogErr(err))
-				if err == jwt.ErrSignatureInvalid {
-					http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-					return
-				}
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
-			}
-
-			if time.Until(claims.ExpiresAt.Time) < 30*time.Second {
-				newToken, err := helpers.GetJwtToken(claims.Username)
-				if err != nil {
-					m.logger.Error("middleware.jwtAuth.GetJwtToken", helpers.SlogErr(err))
-				}
-				w.Header().Set("Authorization", "Bearer "+newToken)
-			}
-
-			ctx := r.Context()
-			ctx = context.WithValue(ctx, models.ContextString("username"), claims.Username)
-			r = r.WithContext(ctx)
+		if r.URL.Path == "/signin" || r.URL.Path == "/" {
+			next.ServeHTTP(w, r)
+			return
 		}
+		var authHeaderValue string
+        
+        // Пытаемся получить токен из куки
+        cookie, err := r.Cookie("token")
+        if err == nil {
+            authHeaderValue = cookie.Value
+        } else {
+            authHeaderValue = r.Header.Get("Authorization")
+        }
+
+		if authHeaderValue == "" {
+			m.logger.Debug("middleware.jwtAuth.authHeaderValue", helpers.SlogDebug("authHeaderValue is empty"))
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		bearerToken := strings.Split(authHeaderValue, " ")
+		if len(bearerToken) != 2 {
+			m.logger.Debug("middleware.jwtAuth.bearerToken", helpers.SlogDebug("format bearerToken is not Bearer {jwt}"))
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		claims, err := helpers.VerifyUser(bearerToken[1])
+		if err != nil {
+			m.logger.Error("middleware.jwtAuth.VerifyUser", helpers.SlogErr(err))
+			if err == jwt.ErrSignatureInvalid {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if time.Until(claims.ExpiresAt.Time) < 30*time.Second {
+			newToken, err := helpers.GetJwtToken(claims.Username)
+			if err != nil {
+				m.logger.Error("middleware.jwtAuth.GetJwtToken", helpers.SlogErr(err))
+			}
+			w.Header().Set("Authorization", "Bearer "+newToken)
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, models.ContextString("smoker.name"), claims.Username)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"text/template"
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/helpers"
@@ -29,35 +30,34 @@ func New(db *sql.DB, logger *slog.Logger) *Handlers {
 // Home отображает стартовую страницу
 func (h *Handlers) Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username := r.Context().Value(models.ContextString("username"))
+		name := r.Context().Value(models.ContextString("smoker.name"))
 		w.WriteHeader(http.StatusOK)
-		if username == nil {
-			w.Write([]byte("Привет, Гость! Это приложение для тех, кто бросает курить!"))
+		// if name == nil {
+		// 	w.Write([]byte("Привет, Гость! Это приложение для тех, кто бросает курить!"))
+		// 	return
+		// }
+		// name = name.(string)
+		// fmt.Fprintf(w, "Привет, %s! Это приложение для тех, кто бросает курить!", name)
+
+		tmpl, err := template.ParseFiles("internal/templates/index.html")
+		if err != nil {
+			h.Logger.Error("handlers.Home.ParseFIles", helpers.SlogErr(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		username = username.(string)
-		fmt.Fprintf(w, "Привет, %s! Это приложение для тех, кто бросает курить!", username)
+		tmpl.Execute(w, name)
 	}
 }
 
 // Signin записывает JWT-токен в заголовок Authorization и проверяет корректность username и password
 func (h *Handlers) Signin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+
 		var creds models.Credentials
-
-		err := json.NewDecoder(r.Body).Decode(&creds)
-		if err != nil {
-			h.Logger.Error("handlers.Signin.Decode", helpers.SlogErr(err))
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		tokenString, err := helpers.GetJwtToken(creds.Username)
-		if err != nil {
-			h.Logger.Error("handlers.Signin.GetJwtToken", helpers.SlogErr(err))
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
+		creds.Username = username
+		creds.Password = password
 
 		smoker, ok := mocks.Smokers[creds.Username]
 		if !ok {
@@ -73,9 +73,31 @@ func (h *Handlers) Signin() http.HandlerFunc {
 			return
 		}
 
+		tokenString, err := helpers.GetJwtToken(creds.Username)
+		if err != nil {
+			h.Logger.Error("handlers.Signin.GetJwtToken", helpers.SlogErr(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Authorization", "Bearer "+tokenString)
+
+		http.SetCookie(w, &http.Cookie{
+			Name:    "token",
+			Value:   "Bearer " + tokenString,
+			Expires: time.Now().UTC().Add(5 * time.Minute),
+		})
+
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Вы авторизированы!"))
+		tmpl, err := template.ParseFiles("internal/templates/signin.html")
+		if err != nil {
+			h.Logger.Error("handlers.Signin.ParseFIles", helpers.SlogErr(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl.Execute(w, username)
 	}
 }
 
@@ -104,24 +126,29 @@ func (h *Handlers) GetSmokers() http.HandlerFunc {
 	}
 }
 
-// GetSmoker отображает данные одного Smoker по его id
-func GetSmoker(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	smoker, ok := mocks.Smokers[id]
-	if !ok {
-		http.Error(w, "Такого курильщика у нас нет", http.StatusBadRequest)
-		return
-	}
+// GetSmokerProfile отображает данные одного Smoker по его id
+func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		
+		username, ok := r.Context().Value(models.ContextString("smoker.name")).(string)
+		if !ok {
+			h.Logger.Error("handlers.GetSmokerProfile.ctxNameToString")
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 
-	smokerBytes, err := json.Marshal(&smoker)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
+		smoker := mocks.Smokers[username]
 
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write(smokerBytes)
+		w.WriteHeader(http.StatusOK)
+		tmpl, err := template.ParseFiles("internal/templates/profile.html")
+		if err != nil {
+			h.Logger.Error("handlers.GetSmokerProfile.ParseFIles", helpers.SlogErr(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, smoker)
+	}
 }
 
 // PostSmoker создаёт нового Smoker
