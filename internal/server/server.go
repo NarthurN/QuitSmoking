@@ -24,11 +24,13 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mv := middleware.New(h.Logger)
 	mux := http.NewServeMux()
 	mux.Handle(`GET /`, h.Home())
+	mux.Handle(`GET /form`, h.GetForm())
 	mux.Handle(`POST /signin`, h.Signin())
 	mux.Handle("POST /logout", h.Logout())
 	mux.Handle(`GET /smokers`, h.GetSmokers())
 	mux.Handle(`GET /profile`, h.GetSmokerProfile())
-	// r.Get("/smokers/{id}", handlers.GetSmoker)
+	
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	return mv.Log(mv.JwtAuth(mux))
 }
 

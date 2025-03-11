@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/configs"
@@ -47,6 +48,13 @@ func VerifyUser(token string) (*models.Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func AllowedPath(path string, m map[string]struct{}) bool {
+	if _, ok := m[path]; ok || strings.HasPrefix(path, "/static/") {
+		return true
+	}
+	return false
 }
 
 func SlogErr(err error) slog.Attr {

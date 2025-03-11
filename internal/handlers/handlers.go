@@ -30,22 +30,14 @@ func New(db *sql.DB, logger *slog.Logger) *Handlers {
 // Home отображает стартовую страницу
 func (h *Handlers) Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.Context().Value(models.ContextString("smoker.name"))
-		w.WriteHeader(http.StatusOK)
-		// if name == nil {
-		// 	w.Write([]byte("Привет, Гость! Это приложение для тех, кто бросает курить!"))
-		// 	return
-		// }
-		// name = name.(string)
-		// fmt.Fprintf(w, "Привет, %s! Это приложение для тех, кто бросает курить!", name)
-
-		tmpl, err := template.ParseFiles("internal/templates/index.html")
+		tmpl, err := template.ParseFiles("static/templates/index.html")
 		if err != nil {
 			h.Logger.Error("handlers.Home.ParseFIles", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		tmpl.Execute(w, name)
+		w.WriteHeader(http.StatusOK)
+		tmpl.Execute(w, nil)
 	}
 }
 
@@ -90,14 +82,14 @@ func (h *Handlers) Signin() http.HandlerFunc {
 		})
 
 		w.WriteHeader(http.StatusOK)
-		tmpl, err := template.ParseFiles("internal/templates/signin.html")
+		tmpl, err := template.ParseFiles("static/templates/signin.html")
 		if err != nil {
 			h.Logger.Error("handlers.Signin.ParseFIles", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		tmpl.Execute(w, username)
+		tmpl.Execute(w, smoker)
 	}
 }
 
@@ -126,6 +118,23 @@ func (h *Handlers) GetSmokers() http.HandlerFunc {
 	}
 }
 
+func (h *Handlers) GetForm() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, err := r.Cookie("token")
+		if err != nil {
+			tmpl, err := template.ParseFiles("static/templates/form.html")
+			if err != nil {
+				h.Logger.Error("handlers.GetForm.ParseFIles", helpers.SlogErr(err))
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			tmpl.Execute(w, nil)
+			return
+		}
+		http.Redirect(w, r, `/profile`, http.StatusFound)
+	}
+}
+
 // GetSmokerProfile отображает данные одного Smoker по его id
 func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +150,7 @@ func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 		smoker := mocks.Smokers[username]
 
 		w.WriteHeader(http.StatusOK)
-		tmpl, err := template.ParseFiles("internal/templates/profile.html")
+		tmpl, err := template.ParseFiles("static/templates/profile.html")
 		if err != nil {
 			h.Logger.Error("handlers.GetSmokerProfile.ParseFIles", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

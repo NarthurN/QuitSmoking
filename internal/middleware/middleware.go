@@ -13,6 +13,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var allowedPaths = map[string]struct{}{
+	"/": {},
+	"/signin": {},
+	"/form":{},
+	"/static/": {},
+}
+
 // Для получения статуса ответа
 type customResponseWriter struct {
 	http.ResponseWriter
@@ -72,10 +79,11 @@ func (m *Middleware) Log(next http.Handler) http.Handler {
 
 func (m *Middleware) JwtAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/signin" || r.URL.Path == "/" {
+		if helpers.AllowedPath(r.URL.Path, allowedPaths) {
 			next.ServeHTTP(w, r)
 			return
 		}
+
 		var authHeaderValue string
         
         // Пытаемся получить токен из куки

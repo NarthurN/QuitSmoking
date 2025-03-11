@@ -24,5 +24,10 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+type PageData struct {
+	IsAuthenticated bool
+	Name string
+}
+
 // Чтобы в контекст передавать не тип string
 type ContextString string
