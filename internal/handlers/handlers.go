@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/helpers"
+	"github.com/NarthurN/QuitSmoking/internal/middleware"
 	"github.com/NarthurN/QuitSmoking/internal/mocks"
 	"github.com/NarthurN/QuitSmoking/internal/models"
 	"github.com/go-chi/chi/v5"
@@ -18,12 +19,14 @@ import (
 type Handlers struct {
 	db     *sql.DB
 	Logger *slog.Logger
+	Mw     *middleware.Middleware
 }
 
 func New(db *sql.DB, logger *slog.Logger) *Handlers {
 	return &Handlers{
 		db:     db,
 		Logger: logger,
+		Mw:     middleware.New(logger, helpers.NewTokener()),
 	}
 }
 
@@ -36,7 +39,6 @@ func (h *Handlers) Home() http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
 		tmpl.Execute(w, nil)
 	}
 }
@@ -44,6 +46,7 @@ func (h *Handlers) Home() http.HandlerFunc {
 // Signin записывает JWT-токен в заголовок Authorization и проверяет корректность username и password
 func (h *Handlers) Signin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tokener := helpers.NewTokener()
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
@@ -65,7 +68,7 @@ func (h *Handlers) Signin() http.HandlerFunc {
 			return
 		}
 
-		tokenString, err := helpers.GetJwtToken(creds.Username)
+		tokenString, err := tokener.GetJwtToken(creds.Username)
 		if err != nil {
 			h.Logger.Error("handlers.Signin.GetJwtToken", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -139,7 +142,7 @@ func (h *Handlers) GetForm() http.HandlerFunc {
 func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		
+
 		username, ok := r.Context().Value(models.ContextString("smoker.name")).(string)
 		if !ok {
 			h.Logger.Error("handlers.GetSmokerProfile.ctxNameToString")

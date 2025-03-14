@@ -26,7 +26,7 @@ type Claims struct {
 
 type PageData struct {
 	IsAuthenticated bool
-	Name string
+	Name            string
 }
 
 // Чтобы в контекст передавать не тип string

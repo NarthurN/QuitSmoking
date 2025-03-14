@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
-	"github.com/NarthurN/QuitSmoking/internal/middleware"
 )
 
 func New(mux http.Handler) *http.Server {
@@ -21,7 +20,6 @@ func New(mux http.Handler) *http.Server {
 }
 
 func SetupRoutes(h *handlers.Handlers) http.Handler {
-	mv := middleware.New(h.Logger)
 	mux := http.NewServeMux()
 	mux.Handle(`GET /`, h.Home())
 	mux.Handle(`GET /form`, h.GetForm())
@@ -29,9 +27,9 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mux.Handle("POST /logout", h.Logout())
 	mux.Handle(`GET /smokers`, h.GetSmokers())
 	mux.Handle(`GET /profile`, h.GetSmokerProfile())
-	
+
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	return mv.Log(mv.JwtAuth(mux))
+	return h.Mw.Log(h.Mw.JwtAuth(mux))
 }
 
 // r.Post("/smokers", handlers.PostSmoker)

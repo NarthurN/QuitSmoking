@@ -11,7 +11,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GetJwtToken(username string) (string, error) {
+type Tokener struct{}
+
+func NewTokener() *Tokener {
+	return &Tokener{}
+}
+
+func (t *Tokener) GetJwtToken(username string) (string, error) {
 	op := "helpers.GetJwtToken"
 	expirationTime := time.Now().UTC().Add(5 * time.Minute)
 
@@ -32,7 +38,7 @@ func GetJwtToken(username string) (string, error) {
 	return tokenString, nil
 }
 
-func VerifyUser(token string) (*models.Claims, error) {
+func (t *Tokener) VerifyUser(token string) (*models.Claims, error) {
 	op := "helpers.VerifyUser"
 	claims := &models.Claims{}
 
@@ -50,7 +56,7 @@ func VerifyUser(token string) (*models.Claims, error) {
 	return claims, nil
 }
 
-func AllowedPath(path string, m map[string]struct{}) bool {
+func (t *Tokener) AllowedPath(path string, m map[string]struct{}) bool {
 	if _, ok := m[path]; ok || strings.HasPrefix(path, "/static/") {
 		return true
 	}
@@ -59,14 +65,14 @@ func AllowedPath(path string, m map[string]struct{}) bool {
 
 func SlogErr(err error) slog.Attr {
 	return slog.Attr{
-		Key: "error",
+		Key:   "error",
 		Value: slog.StringValue(err.Error()),
 	}
 }
 
 func SlogDebug(str string) slog.Attr {
 	return slog.Attr{
-		Key: "debug",
+		Key:   "debug",
 		Value: slog.StringValue(str),
 	}
 }
