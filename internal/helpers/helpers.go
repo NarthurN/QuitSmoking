@@ -96,3 +96,26 @@ func SlogDebug(str string) slog.Attr {
 		Value: slog.StringValue(str),
 	}
 }
+
+// GetSmokersDiffTime возвращает промежуток времени между StoppedSmoking и времени "сейчас"
+func GetSmokersDiffTime(smoker *models.Smoker) string {
+	now := time.Now().UTC()
+
+	diff := now.Sub(smoker.StoppedSmoking)
+
+	// Преобразуем разницу в годы, месяцы, дни и часы
+	years := int(diff.Hours() / 24 / 365)
+	remaining := diff - time.Duration(years)*365*24*time.Hour
+
+	months := int(remaining.Hours() / 24 / 30)
+	remaining -= time.Duration(months) * 30 * 24 * time.Hour
+
+	days := int(remaining.Hours() / 24)
+	remaining -= time.Duration(days) * 24 * time.Hour
+
+	hours := int(remaining.Hours())
+
+	timePassed := fmt.Sprintf("%d лет, %d месяцев, %d дней, %d часов", years, months, days, hours)
+
+	return timePassed
+}

@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"text/template"
@@ -155,7 +154,15 @@ func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 		}
 
 		smoker := mocks.Smokers[username]
+		timeNotSmoke := helpers.GetSmokersDiffTime(smoker)
 
+		data := struct{
+			Name string
+			TimeNotSmoke string
+		}{
+			Name: smoker.Name,
+			TimeNotSmoke: timeNotSmoke,
+		}
 		w.WriteHeader(http.StatusOK)
 		tmpl, err := template.ParseFiles("static/templates/profile.html")
 		if err != nil {
@@ -163,7 +170,7 @@ func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		tmpl.Execute(w, smoker)
+		tmpl.Execute(w, data)
 	}
 }
 
@@ -235,41 +242,6 @@ func PutSmoker(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(message); err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-}
-
-// GetSmokersDiffTime возвращает промежуток времени между StoppedSmoking и времени "сейчас"
-func GetSmokersDiffTime(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if _, ok := mocks.Smokers[id]; !ok {
-		http.Error(w, "Такого курильщика не существует", http.StatusBadRequest)
-		return
-	}
-
-	now := time.Now().UTC()
-
-	diff := now.Sub(mocks.Smokers[id].StoppedSmoking)
-
-	// Преобразуем разницу в годы, месяцы, дни и часы
-	years := int(diff.Hours() / 24 / 365)
-	remaining := diff - time.Duration(years)*365*24*time.Hour
-
-	months := int(remaining.Hours() / 24 / 30)
-	remaining -= time.Duration(months) * 30 * 24 * time.Hour
-
-	days := int(remaining.Hours() / 24)
-	remaining -= time.Duration(days) * 24 * time.Hour
-
-	hours := int(remaining.Hours())
-
-	timePassed := fmt.Sprintf("%d лет, %d месяцев, %d дней, %d часов", years, months, days, hours)
-
-	message := map[string]string{"message": "Вы не курили", "id": id, "stoppedSmoking": timePassed}
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(message); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 }

@@ -28,8 +28,8 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mux.Handle(`GET /smokers`, h.GetSmokers())
 	mux.Handle(`GET /profile`, h.GetSmokerProfile())
 
-	// mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	mux.Handle("GET /static/", http.FileServer(http.Dir("static")))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// mux.Handle("GET /static/", http.FileServer(http.Dir("static")))
 	return h.Mw.Log(h.Mw.JwtAuth(mux))
 }
 
