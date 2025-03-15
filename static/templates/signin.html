@@ -2,6 +2,14 @@
 <html>
 <head>
     <title>Авторизация</title>
+    <style>
+        .logo {
+            height: 100px;
+            width: auto;
+            display: block;
+            margin: 0 auto; /* центрирует логотип */
+        }
+    </style>
     <script>
         // JavaScript для перенаправления
         function redirect() {
@@ -15,14 +23,14 @@
 <body>
     <header>
         <!-- Логотип-ссылка на главную -->
-        <a href="index.html">
+        <a href="/">
             <img src="/static/logo/logo.webp" alt="Логотип" class="logo">
         </a>
         <!-- Навигационное меню -->
         <nav>
             <ul>
-                <li><a href="page1.html">Страница 1</a></li>
-                <li><a href="page2.html">Страница 2</a></li>
+                <li><a href="/smokers">Получить всех курильщиков</a></li>
+                <li><a href="/logout">Выйти</a></li>
             </ul>
         </nav>
     </header>

@@ -17,6 +17,7 @@ var allowedPaths = map[string]struct{}{
 	"/":        {},
 	"/signin":  {},
 	"/form":    {},
+	"/logout":    {},
 	"/static/": {},
 }
 
@@ -35,17 +36,18 @@ type Tokener interface {
 	VerifyUser(token string) (*models.Claims, error)
 	GetJwtToken(username string) (string, error)
 	AllowedPath(path string, m map[string]struct{}) bool
+	CheckPermision(username, path string) bool
 }
 
 type Middleware struct {
 	logger  *slog.Logger
-	tokener Tokener
+	Tokener Tokener
 }
 
 func New(logger *slog.Logger, tokener Tokener) *Middleware {
 	return &Middleware{
 		logger:  logger,
-		tokener: tokener,
+		Tokener: tokener,
 	}
 }
 
@@ -87,20 +89,25 @@ func (m *Middleware) Log(next http.Handler) http.Handler {
 
 func (m *Middleware) JwtAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if m.tokener.AllowedPath(r.URL.Path, allowedPaths) {
+		if m.Tokener.AllowedPath(r.URL.Path, allowedPaths) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		var authHeaderValue string
 
-		// Пытаемся получить токен из куки
 		cookie, err := r.Cookie("token")
-		if err == nil {
-			authHeaderValue = cookie.Value
-		} else {
-			authHeaderValue = r.Header.Get("Authorization")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				m.logger.Debug("middleware.jwtAuth.r.Cookie(token)", helpers.SlogDebug("no cookie"))
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			m.logger.Error("middleware.jwtAuth.r.Cookie(token)", helpers.SlogErr(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
+		authHeaderValue = cookie.Value
 
 		if authHeaderValue == "" {
 			m.logger.Debug("middleware.jwtAuth.authHeaderValue", helpers.SlogDebug("authHeaderValue is empty"))
@@ -115,7 +122,7 @@ func (m *Middleware) JwtAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := m.tokener.VerifyUser(bearerToken[1])
+		claims, err := m.Tokener.VerifyUser(bearerToken[1])
 		if err != nil {
 			m.logger.Error("middleware.jwtAuth.VerifyUser", helpers.SlogErr(err))
 			if err == jwt.ErrSignatureInvalid {
@@ -126,12 +133,23 @@ func (m *Middleware) JwtAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		if time.Until(claims.ExpiresAt.Time) < 30*time.Second {
-			newToken, err := m.tokener.GetJwtToken(claims.Username)
+		if !m.Tokener.CheckPermision(claims.Username, r.URL.Path) {
+			m.logger.Debug("middleware.jwtAuth.CheckPermision", helpers.SlogDebug("permition denied"))
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		if time.Until(claims.ExpiresAt.Time) < 30*time.Second && time.Until(claims.ExpiresAt.Time) > 0 {
+			m.logger.Debug("refreesh")
+			newToken, err := m.Tokener.GetJwtToken(claims.Username)
 			if err != nil {
 				m.logger.Error("middleware.jwtAuth.GetJwtToken", helpers.SlogErr(err))
 			}
-			w.Header().Set("Authorization", "Bearer "+newToken)
+			http.SetCookie(w, &http.Cookie{
+				Name:    "token",
+				Value:   "Bearer " + newToken,
+				Expires: time.Now().UTC().Add(5 * time.Minute),
+			})
 		}
 
 		ctx := r.Context()

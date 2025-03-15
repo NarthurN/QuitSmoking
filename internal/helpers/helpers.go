@@ -53,6 +53,8 @@ func (t *Tokener) VerifyUser(token string) (*models.Claims, error) {
 		return claims, fmt.Errorf("%s: %w", op, err)
 	}
 
+
+
 	return claims, nil
 }
 
@@ -61,6 +63,24 @@ func (t *Tokener) AllowedPath(path string, m map[string]struct{}) bool {
 		return true
 	}
 	return false
+}
+
+func (t *Tokener) CheckPermision(username, path string) bool {
+	requiredRoles, ok := configs.PathsRoles[path]
+	if ok {
+		rolesOfUser, ok := configs.UserRoles[username]
+		if !ok {
+			return false
+		}
+		for _, requiredRole := range requiredRoles {
+			for _, roleOfUser := range rolesOfUser {
+				if requiredRole == roleOfUser {
+					return true
+				}
+			}
+		}
+	}
+	return true
 }
 
 func SlogErr(err error) slog.Attr {

@@ -33,6 +33,7 @@ func New(db *sql.DB, logger *slog.Logger) *Handlers {
 // Home отображает стартовую страницу
 func (h *Handlers) Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		tmpl, err := template.ParseFiles("static/templates/index.html")
 		if err != nil {
 			h.Logger.Error("handlers.Home.ParseFIles", helpers.SlogErr(err))
@@ -46,7 +47,6 @@ func (h *Handlers) Home() http.HandlerFunc {
 // Signin записывает JWT-токен в заголовок Authorization и проверяет корректность username и password
 func (h *Handlers) Signin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tokener := helpers.NewTokener()
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
@@ -68,7 +68,7 @@ func (h *Handlers) Signin() http.HandlerFunc {
 			return
 		}
 
-		tokenString, err := tokener.GetJwtToken(creds.Username)
+		tokenString, err := h.Mw.Tokener.GetJwtToken(creds.Username)
 		if err != nil {
 			h.Logger.Error("handlers.Signin.GetJwtToken", helpers.SlogErr(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -76,12 +76,12 @@ func (h *Handlers) Signin() http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Authorization", "Bearer "+tokenString)
 
 		http.SetCookie(w, &http.Cookie{
 			Name:    "token",
 			Value:   "Bearer " + tokenString,
 			Expires: time.Now().UTC().Add(5 * time.Minute),
+			Path:    "/",
 		})
 
 		w.WriteHeader(http.StatusOK)
@@ -100,8 +100,12 @@ func (h *Handlers) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "token",
-			Expires: time.Now().UTC(),
+			Value:   "",
+			Path:     "/",
+			Expires: time.Now(),
+			MaxAge:   -1,
 		})
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
