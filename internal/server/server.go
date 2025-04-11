@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
-	"github.com/NarthurN/QuitSmoking/internal/middleware"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -34,11 +33,9 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mux.Handle(`GET /profile`, h.GetSmokerProfile())
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	// mux.Handle("GET /static/", http.FileServer(http.Dir("static")))
 	return h.Mw.Log(h.Mw.JwtAuth(mux))
 }
 
-// r.Post("/smokers", handlers.PostSmoker)
 // r.Delete("/smokers/{id}", handlers.DeleteSmoker)
 // r.Put("/smokers/{id}", handlers.PutSmoker)
 // r.Get("/smokers/{id}", handlers.GetSmokersDiffTime)
@@ -73,7 +70,6 @@ func SetupDB() *sql.DB {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {

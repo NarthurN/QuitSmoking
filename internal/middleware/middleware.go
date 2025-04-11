@@ -14,11 +14,11 @@ import (
 )
 
 var allowedPaths = map[string]struct{}{
-	"/":        {},
-	"/signin":  {},
-	"/form":    {},
-	"/logout":    {},
-	"/static/": {},
+	"/":         {},
+	"/signin":   {},
+	"/form":     {},
+	"/logout":   {},
+	"/static/":  {},
 	"/register": {},
 }
 

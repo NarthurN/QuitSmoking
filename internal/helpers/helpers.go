@@ -53,8 +53,6 @@ func (t *Tokener) VerifyUser(token string) (*models.Claims, error) {
 		return claims, fmt.Errorf("%s: %w", op, err)
 	}
 
-
-
 	return claims, nil
 }
 

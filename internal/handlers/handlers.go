@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"text/template"
@@ -12,6 +13,7 @@ import (
 	"github.com/NarthurN/QuitSmoking/internal/middleware"
 	"github.com/NarthurN/QuitSmoking/internal/mocks"
 	"github.com/NarthurN/QuitSmoking/internal/models"
+	"github.com/NarthurN/QuitSmoking/pkg/dbapi"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -103,14 +105,26 @@ func (h *Handlers) Register() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-	
-		if _, ok := mocks.Smokers[smoker.ID]; ok {
-			http.Error(w, "Такой курильщик уже существует", http.StatusBadRequest)
+
+		existed, err := dbapi.IsUserExists(h.db, smoker.Username)
+		if err != nil {
+			h.Logger.Debug("Error in IsUserExists dbapi", helpers.SlogErr(err))
 			return
 		}
-	
+
+		if _, ok := mocks.Smokers[smoker.ID]; ok || existed {
+			http.Error(w, "Вы уже зарегестрированы", http.StatusBadRequest)
+			return
+		}
+
+		rowaAffected, err := dbapi.Add(h.db, smoker)
+		if err != nil {
+			h.Logger.Debug("Error in add dbapi", helpers.SlogErr(err))
+			return
+		}
+		h.Logger.Debug(fmt.Sprintf("Изменили в базе данных строк: %d", rowaAffected))
 		mocks.Smokers[smoker.ID] = &smoker
-	
+
 		message := map[string]string{"message": "Пользователь записан", "id": smoker.ID}
 		w.Header().Set("Content-Type", "application/json;charset=utf-8")
 		w.WriteHeader(http.StatusOK)
@@ -126,9 +140,9 @@ func (h *Handlers) Logout() http.HandlerFunc {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "token",
 			Value:   "",
-			Path:     "/",
+			Path:    "/",
 			Expires: time.Now(),
-			MaxAge:   -1,
+			MaxAge:  -1,
 		})
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
@@ -182,11 +196,11 @@ func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 		smoker := mocks.Smokers[username]
 		timeNotSmoke := helpers.GetSmokersDiffTime(smoker)
 
-		data := struct{
-			Name string
+		data := struct {
+			Name         string
 			TimeNotSmoke string
 		}{
-			Name: smoker.Name,
+			Name:         smoker.Name,
 			TimeNotSmoke: timeNotSmoke,
 		}
 		w.WriteHeader(http.StatusOK)

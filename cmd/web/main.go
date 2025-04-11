@@ -9,7 +9,10 @@ import (
 
 func main() {
 	logger := server.SetupLogger("debug")
+
 	db := server.SetupDB()
+	defer db.Close()
+
 	h := handlers.New(db, logger)
 
 	mux := server.SetupRoutes(h)
