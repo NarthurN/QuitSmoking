@@ -95,6 +95,32 @@ func (h *Handlers) Signin() http.HandlerFunc {
 	}
 }
 
+func (h *Handlers) Register() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var smoker models.Smoker
+
+		if err := json.NewDecoder(r.Body).Decode(&smoker); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	
+		if _, ok := mocks.Smokers[smoker.ID]; ok {
+			http.Error(w, "Такой курильщик уже существует", http.StatusBadRequest)
+			return
+		}
+	
+		mocks.Smokers[smoker.ID] = &smoker
+	
+		message := map[string]string{"message": "Пользователь записан", "id": smoker.ID}
+		w.Header().Set("Content-Type", "application/json;charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(message); err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+	}
+}
+
 func (h *Handlers) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
@@ -171,31 +197,6 @@ func (h *Handlers) GetSmokerProfile() http.HandlerFunc {
 			return
 		}
 		tmpl.Execute(w, data)
-	}
-}
-
-// PostSmoker создаёт нового Smoker
-func PostSmoker(w http.ResponseWriter, r *http.Request) {
-	var smoker models.Smoker
-
-	if err := json.NewDecoder(r.Body).Decode(&smoker); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if _, ok := mocks.Smokers[smoker.ID]; ok {
-		http.Error(w, "Такой курильщик уже существует", http.StatusBadRequest)
-		return
-	}
-
-	mocks.Smokers[smoker.ID] = &smoker
-
-	message := map[string]string{"message": "Пользователь записан", "id": smoker.ID}
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(message); err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
 	}
 }
 

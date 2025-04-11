@@ -1,12 +1,16 @@
 package server
 
 import (
+	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/NarthurN/QuitSmoking/internal/handlers"
+	"github.com/NarthurN/QuitSmoking/internal/middleware"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func New(mux http.Handler) *http.Server {
@@ -25,6 +29,7 @@ func SetupRoutes(h *handlers.Handlers) http.Handler {
 	mux.Handle(`GET /form`, h.GetForm())
 	mux.Handle(`POST /signin`, h.Signin())
 	mux.Handle("GET /logout", h.Logout())
+	mux.Handle("POST /register", h.Register())
 	mux.Handle(`GET /smokers`, h.GetSmokers())
 	mux.Handle(`GET /profile`, h.GetSmokerProfile())
 
@@ -59,4 +64,23 @@ func SetupLogger(level string) *slog.Logger {
 	}))
 
 	return logger
+}
+
+func SetupDB() *sql.DB {
+	connStr := "user=arthur password=arthur dbname=Smokers host=localhost port=5432 sslmode=disable"
+
+	db, err := sql.Open("pgx", connStr)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Successfully connected to db")
+
+	return db
 }

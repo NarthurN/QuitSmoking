@@ -19,6 +19,7 @@ var allowedPaths = map[string]struct{}{
 	"/form":    {},
 	"/logout":    {},
 	"/static/": {},
+	"/register": {},
 }
 
 // Для получения статуса ответа

@@ -9,8 +9,8 @@ import (
 
 func main() {
 	logger := server.SetupLogger("debug")
-
-	h := handlers.New(nil, logger)
+	db := server.SetupDB()
+	h := handlers.New(db, logger)
 
 	mux := server.SetupRoutes(h)
 
